@@ -14,7 +14,10 @@ public class ScheduledService {
     @Autowired
     private OnionCollegeService onionCollegeService;
 
-    @Scheduled(cron = "0 0 9 ? * *")
+    /**
+     * 注意服务器慢8个小时
+     */
+    @Scheduled(cron = "0 30 10 ? * *")
     public void scheduled() {
         log.info("#######################定时任务开始########################");
         EgoistResult loginResult = onionCollegeService.login();
