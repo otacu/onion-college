@@ -1,10 +1,10 @@
 package com.egoist.onioncollege.service;
 
 import com.alibaba.fastjson.JSONObject;
-import com.egoist.onioncollege.config.OnionCollegeConfig;
 import com.egoist.onioncollege.constants.OnionCollegeConstants;
 import com.egoist.onioncollege.enums.SubjectCommentEnum;
 import com.egoist.onioncollege.pojo.request.*;
+import com.egoist.onioncollege.pojo.response.ClassInfo;
 import com.egoist.onioncollege.pojo.response.QueryCourseResult;
 import com.egoist.onioncollege.pojo.response.Stage;
 import com.egoist.parent.common.constants.EgoistExceptionStatusConstant;
@@ -12,7 +12,6 @@ import com.egoist.parent.common.utils.http.EgoistOkHttp3Util;
 import com.egoist.parent.common.utils.json.EgoistJsonUtil;
 import com.egoist.parent.pojo.dto.EgoistResult;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -20,8 +19,6 @@ import java.util.*;
 @Slf4j
 @Service
 public class OnionCollegeService {
-    @Autowired
-    private OnionCollegeConfig onionCollegeConfig;
 
     private String userId;
 
@@ -76,15 +73,15 @@ public class OnionCollegeService {
      *
      * @return
      */
-    public EgoistResult login() {
+    public EgoistResult login(String userName, String password) {
         try {
             String url = OnionCollegeConstants.LOGIN_URL;
             Map<String, String> header = new HashMap<>();
             header.put("Content-Type", "application/json");
             LoginRequest request = new LoginRequest();
             request.setSvcCode(OnionCollegeConstants.SVC_CODE);
-            request.setUsername(onionCollegeConfig.getUSERNAME());
-            request.setPassword(onionCollegeConfig.getPASSWORD());
+            request.setUsername(userName);
+            request.setPassword(password);
             request.setOrgCode(OnionCollegeConstants.ORD_CODE);
             JSONObject returnObject = EgoistOkHttp3Util.postHeaderBody(url, header, EgoistJsonUtil.objectToJson(request));
             if (returnObject == null) {
@@ -208,9 +205,9 @@ public class OnionCollegeService {
      * @param content 内容
      * @return
      */
-    public EgoistResult createClassQuestion(String title, String content) {
+    public EgoistResult createClassQuestion(Integer classId, String title, String content) {
         try {
-            String url = String.format(OnionCollegeConstants.CREATE_CLASS_QUESTION_URL, OnionCollegeConstants.CLASS_ID_1);
+            String url = String.format(OnionCollegeConstants.CREATE_CLASS_QUESTION_URL, classId);
             Map<String, String> header = new HashMap<>();
             header.put("Content-Type", "application/json");
             header.put("X-Auth-Token", this.getAuthToken());
@@ -226,9 +223,97 @@ public class OnionCollegeService {
             if (!flag) {
                 return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, msg, null);
             }
-            return EgoistResult.ok();
+            Integer subjectId = returnObject.getJSONObject("result").getInteger("subjectId");
+            return EgoistResult.ok(subjectId);
         } catch (Exception e) {
             return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "发布问答失败：" + e.toString(), null);
+        }
+    }
+
+    /**
+     * 评论问答
+     *
+     * @param subjectId 问答id
+     * @param comment   评论内容
+     * @return 结果
+     */
+    public EgoistResult postClassQuestionComment(Integer subjectId, String comment) {
+        try {
+            String url = String.format(OnionCollegeConstants.POST_CLASS_QUESTION_COMMENT_URL, subjectId);
+            Map<String, String> header = new HashMap<>();
+            header.put("Content-Type", "application/json");
+            header.put("X-Auth-Token", this.getAuthToken());
+            PostClassQuestionCommentRequest request = new PostClassQuestionCommentRequest();
+            request.setComment(comment);
+            JSONObject returnObject = EgoistOkHttp3Util.postHeaderBody(url, header, EgoistJsonUtil.objectToJson(request));
+            if (returnObject == null) {
+                return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "返回报文为空", null);
+            }
+            Boolean flag = (Boolean) returnObject.get("flag");
+            String msg = (String) returnObject.get("msg");
+            if (!flag) {
+                return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, msg, null);
+            }
+            return EgoistResult.ok();
+        } catch (Exception e) {
+            return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "评论问答失败：" + e.toString(), null);
+        }
+    }
+
+    /**
+     * 获取班级列表
+     *
+     * @return
+     */
+    public EgoistResult getClassList() {
+        try {
+            String url = String.format(OnionCollegeConstants.MY_CLASS_LIST_URL, this.getUserId(),
+                    OnionCollegeConstants.ORG_ID, new Date().getTime());
+            Map<String, String> header = new HashMap<>();
+            header.put("X-Access-Token", this.getAccessToken());
+            JSONObject returnObject = EgoistOkHttp3Util.get(url, header);
+            if (returnObject == null) {
+                return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "返回报文为空", null);
+            }
+            Boolean flag = (Boolean) returnObject.get("flag");
+            String msg = (String) returnObject.get("msg");
+            if (!flag) {
+                return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, msg, null);
+            }
+            List<ClassInfo> result = EgoistJsonUtil.jsonToList(EgoistJsonUtil.objectToJson(returnObject.get("result")), ClassInfo.class);
+            return EgoistResult.ok(result);
+        } catch (Exception e) {
+            return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "获取班级列表失败：" + e.toString(), null);
+        }
+    }
+
+    /**
+     * 创建问答并评论
+     *
+     * @return
+     */
+    public EgoistResult createClassQuestionAndComment() {
+        try {
+            EgoistResult getClassListResult = getClassList();
+            if (!EgoistResult.isOk(getClassListResult)) {
+                return getClassListResult;
+            }
+            List<ClassInfo> classList = (List<ClassInfo>) getClassListResult.getData();
+            for (ClassInfo classInfo : classList) {
+                EgoistResult createQuestionResult1 = this.createClassQuestion(classInfo.getClassId(), "好好学习天天向上", "....................");
+                if (EgoistResult.isOk(createQuestionResult1)) {
+                    Integer subjectId = (Integer) createQuestionResult1.getData();
+                    this.postClassQuestionComment(subjectId, "签到");
+                }
+                EgoistResult createQuestionResult2 = this.createClassQuestion(classInfo.getClassId(), "班级问答打卡", "....................");
+                if (EgoistResult.isOk(createQuestionResult2)) {
+                    Integer subjectId = (Integer) createQuestionResult2.getData();
+                    this.postClassQuestionComment(subjectId, "签到");
+                }
+            }
+            return EgoistResult.ok();
+        } catch (Exception e) {
+            return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "创建问答并评论异常：" + e.toString(), null);
         }
     }
 

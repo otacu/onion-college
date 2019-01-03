@@ -19,6 +19,10 @@ public final class OnionCollegeConstants {
 
     public static final String LOGIN_URL = "https://study.study2win.net/front/login/unp";
 
+    public static final String POST_CLASS_QUESTION_COMMENT_URL = "https://study.study2win.net/front/courseitem/postCommentToSubject?subjectId=%s&targetCommendId=0";
+
+    public static final String MY_CLASS_LIST_URL = "https://study.study2win.net/front/classDefine/myClassList?userId=%s&orgId=%s&page=1&t=%s";
+
     /**
      * 1为匿名，0为显示名字
      */
@@ -27,12 +31,12 @@ public final class OnionCollegeConstants {
     /**
      * 12月新员工培训
      */
-    public static final Short CLASS_ID_1 = 6958;
+    public static final Integer CLASS_ID_1 = 6958;
 
     /**
      * 职场通
      */
-    public static final Short CLASS_ID_2 = 10284;
+    public static final Integer CLASS_ID_2 = 10284;
 
     /**
      * 公司id

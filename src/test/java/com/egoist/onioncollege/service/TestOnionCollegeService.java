@@ -1,6 +1,7 @@
 package com.egoist.onioncollege.service;
 
 import com.alibaba.fastjson.JSON;
+import com.egoist.onioncollege.constants.OnionCollegeConstants;
 import com.egoist.parent.pojo.dto.EgoistResult;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -23,7 +24,7 @@ public class TestOnionCollegeService {
 
     @Test
     public void testCreateClassQuestion() {
-        onionCollegeService.createClassQuestion("111111", "111111111111111");
+        onionCollegeService.createClassQuestion(OnionCollegeConstants.CLASS_ID_1, "111111", "111111111111111");
     }
 
     @Test
@@ -50,11 +51,31 @@ public class TestOnionCollegeService {
 
     @Test
     public void testLogin() {
-        EgoistResult result = onionCollegeService.login();
+        EgoistResult result = onionCollegeService.login("jingsheng-ye@msyc.cc", "123456");
         System.out.println("##################################################");
         System.out.println(JSON.toJSONString(result));
         System.out.println(onionCollegeService.getUserId());
         System.out.println(onionCollegeService.getAuthToken());
         System.out.println(onionCollegeService.getAccessToken());
+    }
+
+    @Test
+    public void testCreateClassQuestionAndComment() {
+        onionCollegeService.setUserId("1133756");
+        onionCollegeService.setAuthToken("VwIAAAcACAAABLxMEQAAAAAACAAABGUYAAAAAAAACAAABN97AgAAAAAAEwAABzUxOTE1ODEzODA1NzEzNTQ2MDAUAAAHamluZ3NoZW5nLXllQG1zeWMuY2MUAAAHamluZ3NoZW5nLXllQG1zeWMuY2MLAAAHMTUwMTg0MjE4NDk=");
+        onionCollegeService.setAccessToken("V1.0|heSlccAKzLilEfZTCb5c6ATYuoNBxOYRSQhtUpjA29vLDoZMgLp+Hq9c2fPVCkn0LrlLXxaP70J8gnPBU69HJZYwGrhkHlptWuRmzu1SNVWOyW53ramhFQofgcxOmL8p");
+        EgoistResult result = onionCollegeService.createClassQuestionAndComment();
+        System.out.println("##################################################");
+        System.out.println(JSON.toJSONString(result));
+    }
+
+    @Test
+    public void testGetClassList() {
+        onionCollegeService.setUserId("1133756");
+        onionCollegeService.setAuthToken("VwIAAAcACAAABLxMEQAAAAAACAAABGUYAAAAAAAACAAABN97AgAAAAAAEwAABzUxOTE1ODEzODA1NzEzNTQ2MDAUAAAHamluZ3NoZW5nLXllQG1zeWMuY2MUAAAHamluZ3NoZW5nLXllQG1zeWMuY2MLAAAHMTUwMTg0MjE4NDk=");
+        onionCollegeService.setAccessToken("V1.0|heSlccAKzLilEfZTCb5c6ATYuoNBxOYRSQhtUpjA29vLDoZMgLp+Hq9c2fPVCkn0LrlLXxaP70J8gnPBU69HJZYwGrhkHlptWuRmzu1SNVWOyW53ramhFQofgcxOmL8p");
+        EgoistResult result = onionCollegeService.getClassList();
+        System.out.println("##################################################");
+        System.out.println(JSON.toJSONString(result));
     }
 }
