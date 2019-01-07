@@ -23,6 +23,14 @@ public final class OnionCollegeConstants {
 
     public static final String MY_CLASS_LIST_URL = "https://study.study2win.net/front/classDefine/myClassList?userId=%s&orgId=%s&page=1&t=%s";
 
+    public static final String MARK_COURSE_READED_URL = "http://study.study2win.net/front/basicCourse/%s/markCourseReaded.action?orgId=%s&userId=%s";
+
+    public static final String WRITE_USER_COURSE_HISTORY_URL = "http://study.study2win.net/front/classes/writeUserCourseHistory?userId=%s&courseItemId=%s&state=2&result=%s&instId=%s";
+
+    public static final String HOT_SUBJECT_LIST_URL = "https://study.study2win.net/front/community/listAllHotSubjects?userId=%s&page=1&pageSize=20&t=%s";
+
+    public static final String CLASS_QUESTION_LIST_URL = "https://study.study2win.net/front/courseitem/classrecendminds?classId=%s&page=1";
+
     /**
      * 1为匿名，0为显示名字
      */

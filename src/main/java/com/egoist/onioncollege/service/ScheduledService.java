@@ -1,6 +1,10 @@
 package com.egoist.onioncollege.service;
 
 import com.egoist.onioncollege.config.OnionCollegeConfig;
+import com.egoist.onioncollege.constants.OnionCollegeConstants;
+import com.egoist.onioncollege.enums.SubjectCommentEnum;
+import com.egoist.onioncollege.pojo.response.CourseItem;
+import com.egoist.parent.common.constants.EgoistExceptionStatusConstant;
 import com.egoist.parent.common.utils.string.EgoistStringUtil;
 import com.egoist.parent.pojo.dto.EgoistResult;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 @Slf4j
@@ -22,64 +28,143 @@ public class ScheduledService {
     /**
      * 注意服务器慢8个小时
      */
-    @Scheduled(cron = "0 15 8 ? * *")
+    @Scheduled(cron = "0 10 1 ? * *")
     public void schedule1() {
         log.info("#######################定时任务开始1########################");
         try {
             String[] userNameArray = EgoistStringUtil.split(onionCollegeConfig.getUSERNAME(), ",");
             String[] passwordArray = EgoistStringUtil.split(onionCollegeConfig.getPASSWORD(), ",");
-            scheduleContent(userNameArray[0], passwordArray[0]);
+            for (int i = 0; i < userNameArray.length; i++) {
+                scheduleContent(userNameArray[i], passwordArray[i]);
+            }
         } catch (Exception e) {
             log.error(e.getMessage());
         }
         log.info("#######################定时任务结束1########################");
     }
 
-    @Scheduled(cron = "0 15 11 ? * *")
-    public void schedule2() {
-        try {
-        log.info("#######################定时任务开始2########################");
-        String[] userNameArray = EgoistStringUtil.split(onionCollegeConfig.getUSERNAME(), ",");
-        String[] passwordArray = EgoistStringUtil.split(onionCollegeConfig.getPASSWORD(), ",");
-        scheduleContent(userNameArray[1], passwordArray[1]);
-        } catch (Exception e) {
-            log.error(e.getMessage());
-        }
-        log.info("#######################定时任务结束2########################");
-    }
-
-    @Scheduled(cron = "0 15 13 ? * *")
-    public void schedule3() {
-        try {
-            log.info("#######################定时任务开始3########################");
-            String[] userNameArray = EgoistStringUtil.split(onionCollegeConfig.getUSERNAME(), ",");
-            String[] passwordArray = EgoistStringUtil.split(onionCollegeConfig.getPASSWORD(), ",");
-            scheduleContent(userNameArray[2], passwordArray[2]);
-        } catch (Exception e) {
-            log.error(e.getMessage());
-        }
-        log.info("#######################定时任务结束3########################");
-    }
-
     private void scheduleContent(String userName, String password) {
-        // 登录
-        EgoistResult loginResult = onionCollegeService.login(userName, password);
-        if (!EgoistResult.isOk(loginResult)) {
-            log.error("###############################################" + loginResult.getMsg());
-            return;
+        try {
+            // 登录
+            EgoistResult loginResult = onionCollegeService.login(userName, password);
+            if (!EgoistResult.isOk(loginResult)) {
+                log.error("###############################################" + loginResult.getMsg());
+                return;
+            }
+            // 发布两个班级问答
+            this.createTwoClassQuestion();
+            // 评论两个问答
+            this.commentTwoClassQuestion();
+            // 发表两个话题
+            this.postTwoSubject();
+            // 评论两个话题
+            this.commentTwoSubject();
+            // 取最新一个月的学习任务
+            EgoistResult courseIdListResult = onionCollegeService.getCourseOfLastistStage();
+            if (!EgoistResult.isOk(courseIdListResult)) {
+                return;
+            }
+            List<CourseItem> courseList = (List<CourseItem>) courseIdListResult.getData();
+            // 40分钟后调一下接口，看能不能当我在线40分钟
+            Thread.sleep(2400000);
+            for (CourseItem course : courseList) {
+                // 全部评论，点赞评论
+                onionCollegeService.courseCommentAndAppraise("" + course.getResourceId());
+                // 全部标记已读
+                onionCollegeService.markCourseReaded(course.getResourceId());
+                // 保存课程学习记录
+                onionCollegeService.writeUserCourseHistory(course.getId(), course.getResourceId());
+            }
+        } catch (Exception e) {
+            log.error(e.getMessage());
         }
-        // 发布班级问答并评论
-        onionCollegeService.createClassQuestionAndComment();
-        // 发表话题和评论
-        onionCollegeService.postSubjectAndComment();
-        // 取最新一个月的学习任务，全部评论，点赞评论
-        EgoistResult courseIdListResult = onionCollegeService.getCourseIdOfLastistStage();
-        if (!EgoistResult.isOk(courseIdListResult)) {
-            return;
+    }
+
+    /**
+     * 发表两个话题
+     *
+     * @return
+     */
+    public EgoistResult postTwoSubject() {
+        try {
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(new Date());
+            int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
+            for (int i = 0; i < 2; i++) {
+                int code = dayOfWeek * i;
+                EgoistResult postSubjectResult = onionCollegeService.postSubject(SubjectCommentEnum.getContent(code));
+                if (!EgoistResult.isOk(postSubjectResult)) {
+                    log.error(postSubjectResult.getMsg());
+                    continue;
+                }
+            }
+            return EgoistResult.ok();
+        } catch (Exception e) {
+            return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "发表两个话题异常：" + e.toString(), null);
         }
-        List<Integer> courseIdList = (List<Integer>) courseIdListResult.getData();
-        for (Integer courseId : courseIdList) {
-            onionCollegeService.courseCommentAndAppraise("" + courseId);
+    }
+
+    /**
+     * 评论两个话题
+     *
+     * @return
+     */
+    public EgoistResult commentTwoSubject() {
+        try {
+            EgoistResult queryResult = onionCollegeService.getSubjectForComment();
+            if (!EgoistResult.isOk(queryResult)) {
+                return queryResult;
+            }
+            List<Integer> subjectIdList = (List<Integer>) queryResult.getData();
+            for (int i = 0; i < 2; i++) {
+                onionCollegeService.postSubjectComment(subjectIdList.get(i), "打卡");
+            }
+            return EgoistResult.ok();
+        } catch (Exception e) {
+            return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "评论两个话题异常：" + e.toString(), null);
+        }
+    }
+
+    /**
+     * 创建两个问答
+     *
+     * @return
+     */
+    public EgoistResult createTwoClassQuestion() {
+        try {
+//            EgoistResult getClassListResult = onionCollegeService.getClassList();
+//            if (!EgoistResult.isOk(getClassListResult)) {
+//                return getClassListResult;
+//            }
+//            List<ClassInfo> classList = (List<ClassInfo>) getClassListResult.getData();
+//            for (ClassInfo classInfo : classList) {
+            onionCollegeService.createClassQuestion(OnionCollegeConstants.CLASS_ID_2, "好好学习天天向上", "....................");
+            onionCollegeService.createClassQuestion(OnionCollegeConstants.CLASS_ID_2, "班级问答打卡", "....................");
+//            }
+            return EgoistResult.ok();
+        } catch (Exception e) {
+            return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "创建两个问答异常：" + e.toString(), null);
+        }
+    }
+
+    /**
+     * 评论两个问答
+     *
+     * @return
+     */
+    public EgoistResult commentTwoClassQuestion() {
+        try {
+            EgoistResult queryResult = onionCollegeService.getQuestionForComment();
+            if (!EgoistResult.isOk(queryResult)) {
+                return queryResult;
+            }
+            List<Integer> subjectIdList = (List<Integer>) queryResult.getData();
+            for (int i = 0; i < 2; i++) {
+                onionCollegeService.postClassQuestionComment(subjectIdList.get(i), "签到");
+            }
+            return EgoistResult.ok();
+        } catch (Exception e) {
+            return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "评论两个问答异常：" + e.toString(), null);
         }
     }
 }

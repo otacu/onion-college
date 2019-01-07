@@ -1,12 +1,13 @@
 package com.egoist.onioncollege.service;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.egoist.onioncollege.constants.OnionCollegeConstants;
-import com.egoist.onioncollege.enums.SubjectCommentEnum;
 import com.egoist.onioncollege.pojo.request.*;
 import com.egoist.onioncollege.pojo.response.ClassInfo;
 import com.egoist.onioncollege.pojo.response.QueryCourseResult;
 import com.egoist.onioncollege.pojo.response.Stage;
+import com.egoist.onioncollege.pojo.response.Subject;
 import com.egoist.parent.common.constants.EgoistExceptionStatusConstant;
 import com.egoist.parent.common.utils.http.EgoistOkHttp3Util;
 import com.egoist.parent.common.utils.json.EgoistJsonUtil;
@@ -170,35 +171,6 @@ public class OnionCollegeService {
     }
 
     /**
-     * 发表话题和评论
-     *
-     * @return
-     */
-    public EgoistResult postSubjectAndComment() {
-        try {
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTime(new Date());
-            int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
-            for (int i = 0; i < 2; i++) {
-                int code = dayOfWeek * i;
-                EgoistResult postSubjectResult = this.postSubject(SubjectCommentEnum.getContent(code));
-                if (!EgoistResult.isOk(postSubjectResult)) {
-                    log.error(postSubjectResult.getMsg());
-                    continue;
-                }
-                Integer subjectId = (Integer) postSubjectResult.getData();
-                EgoistResult postCommentResult = this.postSubjectComment(subjectId, SubjectCommentEnum.getReference(code));
-                if (!EgoistResult.isOk(postCommentResult)) {
-                    log.error(postCommentResult.getMsg());
-                }
-            }
-            return EgoistResult.ok();
-        } catch (Exception e) {
-            return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "发表话题和评论异常：" + e.toString(), null);
-        }
-    }
-
-    /**
      * 发布问答
      *
      * @param title   标题
@@ -288,36 +260,6 @@ public class OnionCollegeService {
     }
 
     /**
-     * 创建问答并评论
-     *
-     * @return
-     */
-    public EgoistResult createClassQuestionAndComment() {
-        try {
-            EgoistResult getClassListResult = getClassList();
-            if (!EgoistResult.isOk(getClassListResult)) {
-                return getClassListResult;
-            }
-            List<ClassInfo> classList = (List<ClassInfo>) getClassListResult.getData();
-            for (ClassInfo classInfo : classList) {
-                EgoistResult createQuestionResult1 = this.createClassQuestion(classInfo.getClassId(), "好好学习天天向上", "....................");
-                if (EgoistResult.isOk(createQuestionResult1)) {
-                    Integer subjectId = (Integer) createQuestionResult1.getData();
-                    this.postClassQuestionComment(subjectId, "签到");
-                }
-                EgoistResult createQuestionResult2 = this.createClassQuestion(classInfo.getClassId(), "班级问答打卡", "....................");
-                if (EgoistResult.isOk(createQuestionResult2)) {
-                    Integer subjectId = (Integer) createQuestionResult2.getData();
-                    this.postClassQuestionComment(subjectId, "签到");
-                }
-            }
-            return EgoistResult.ok();
-        } catch (Exception e) {
-            return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "创建问答并评论异常：" + e.toString(), null);
-        }
-    }
-
-    /**
      * 查询班级课程列表
      *
      * @return
@@ -349,7 +291,7 @@ public class OnionCollegeService {
      *
      * @return
      */
-    public EgoistResult getCourseIdOfLastistStage() {
+    public EgoistResult getCourseOfLastistStage() {
         try {
             EgoistResult queryResult = this.queryTrainingClassInfo();
             if (!EgoistResult.isOk(queryResult)) {
@@ -358,13 +300,9 @@ public class OnionCollegeService {
             QueryCourseResult queryCourseResult = (QueryCourseResult) queryResult.getData();
             List<Stage> stages = queryCourseResult.getStages();
             Stage lastistStage = stages.get(stages.size() - 1);
-            List<Integer> courseIdList = new ArrayList<>();
-            lastistStage.getCourseItems().forEach(courseItem -> {
-                courseIdList.add(courseItem.getResourceId());
-            });
-            return EgoistResult.ok(courseIdList);
+            return EgoistResult.ok(lastistStage.getCourseItems());
         } catch (Exception e) {
-            return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "查询最新一个月的课程id失败：" + e.toString(), null);
+            return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "查询最新一个月的课程失败：" + e.toString(), null);
         }
     }
 
@@ -453,6 +391,178 @@ public class OnionCollegeService {
             return appraiseResult;
         } catch (Exception e) {
             return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "课程评论及点赞异常：" + e.toString(), null);
+        }
+    }
+
+    /**
+     * 标记课程已读
+     *
+     * @param courseId 课程id
+     * @return
+     */
+    public EgoistResult markCourseReaded(Integer courseId) {
+        try {
+            String url = String.format(OnionCollegeConstants.MARK_COURSE_READED_URL, courseId, OnionCollegeConstants.ORG_ID, this.getUserId());
+            Map<String, String> header = new HashMap<>();
+            header.put("Content-Type", "application/json");
+            header.put("X-Auth-Token", this.getAuthToken());
+            JSONObject returnObject = EgoistOkHttp3Util.postHeaderBody(url, header, "{}");
+            if (returnObject == null) {
+                return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "返回报文为空", null);
+            }
+            Boolean flag = (Boolean) returnObject.get("flag");
+            String msg = (String) returnObject.get("msg");
+            if (!flag) {
+                return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, msg, null);
+            }
+            return EgoistResult.ok();
+        } catch (Exception e) {
+            return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "标记课程已读失败：" + e.toString(), null);
+        }
+    }
+
+    /**
+     * 保存课程学习记录
+     *
+     * @param id         courseItem id
+     * @param resourceId courseItem resourceId
+     * @return 结果
+     */
+    public EgoistResult writeUserCourseHistory(Integer id, Integer resourceId) {
+        try {
+            String url = String.format(OnionCollegeConstants.WRITE_USER_COURSE_HISTORY_URL, this.getUserId(),
+                    id, resourceId, resourceId);
+            Map<String, String> header = new HashMap<>();
+            header.put("X-Auth-Token", this.getAuthToken());
+            JSONObject returnObject = EgoistOkHttp3Util.get(url, header);
+            if (returnObject == null) {
+                return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "返回报文为空", null);
+            }
+            Boolean flag = (Boolean) returnObject.get("flag");
+            String msg = (String) returnObject.get("msg");
+            if (!flag) {
+                return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, msg, null);
+            }
+            return EgoistResult.ok();
+        } catch (Exception e) {
+            return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "保存课程学习记录失败：" + e.toString(), null);
+        }
+    }
+
+    /**
+     * 获取热门话题列表
+     *
+     * @return
+     */
+    public EgoistResult getHotSubjectList() {
+        try {
+            String url = String.format(OnionCollegeConstants.HOT_SUBJECT_LIST_URL, this.getUserId(), new Date().getTime());
+            Map<String, String> header = new HashMap<>();
+            header.put("X-Access-Token", this.getAccessToken());
+            JSONObject returnObject = EgoistOkHttp3Util.get(url, header);
+            if (returnObject == null) {
+                return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "返回报文为空", null);
+            }
+            Boolean flag = (Boolean) returnObject.get("flag");
+            String msg = (String) returnObject.get("msg");
+            if (!flag) {
+                return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, msg, null);
+            }
+            JSONArray jsonArray = returnObject.getJSONArray("result");
+            List<Subject> subjectList = new ArrayList<>();
+            for (int i = 0; i < jsonArray.size(); i++) {
+                JSONObject jsonObject = jsonArray.getJSONObject(i);
+                Subject subject = new Subject();
+                subject.setSubjectId(jsonObject.getInteger("subjectId"));
+                subject.setUserId(jsonObject.getJSONObject("user").getInteger("userId"));
+                subjectList.add(subject);
+            }
+            return EgoistResult.ok(subjectList);
+        } catch (Exception e) {
+            return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "获取热门话题列表失败：" + e.toString(), null);
+        }
+    }
+
+    /**
+     * 获取用于评论的话题
+     *
+     * @return
+     */
+    public EgoistResult getSubjectForComment() {
+        try {
+            List<Integer> subjectIdList = new ArrayList<>();
+            EgoistResult hotSubjectResult = this.getHotSubjectList();
+            if (!EgoistResult.isOk(hotSubjectResult)) {
+                return hotSubjectResult;
+            }
+            List<Subject> subjectList = (List<Subject>) hotSubjectResult.getData();
+            subjectList.forEach(subject -> {
+                if (subject.getUserId() != 0 && !subject.getUserId().equals(Integer.parseInt(this.getUserId()))) {
+                    subjectIdList.add(subject.getSubjectId());
+                }
+            });
+            return EgoistResult.ok(subjectIdList);
+        } catch (Exception e) {
+            return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "获取用于评论的话题失败：" + e.toString(), null);
+        }
+    }
+
+    /**
+     * 获取班级问答列表
+     *
+     * @param classId 班级id
+     * @return
+     */
+    public EgoistResult getClassQuestionList(Integer classId) {
+        try {
+            String url = String.format(OnionCollegeConstants.CLASS_QUESTION_LIST_URL, classId);
+            Map<String, String> header = new HashMap<>();
+            header.put("X-Auth-Token", this.getAuthToken());
+            JSONObject returnObject = EgoistOkHttp3Util.get(url, header);
+            if (returnObject == null) {
+                return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "返回报文为空", null);
+            }
+            Boolean flag = (Boolean) returnObject.get("flag");
+            String msg = (String) returnObject.get("msg");
+            if (!flag) {
+                return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, msg, null);
+            }
+            JSONArray jsonArray = returnObject.getJSONArray("result");
+            List<Subject> subjectList = new ArrayList<>();
+            for (int i = 0; i < jsonArray.size(); i++) {
+                JSONObject jsonObject = jsonArray.getJSONObject(i);
+                Subject subject = new Subject();
+                subject.setSubjectId(jsonObject.getInteger("subjectId"));
+                subject.setUserId(jsonObject.getJSONObject("user").getInteger("userId"));
+                subjectList.add(subject);
+            }
+            return EgoistResult.ok(subjectList);
+        } catch (Exception e) {
+            return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "获取班级问答列表失败：" + e.toString(), null);
+        }
+    }
+
+    /**
+     * 获取用于评论的问答
+     *
+     * @return
+     */
+    public EgoistResult getQuestionForComment() {
+        try {
+            List<Integer> subjectIdList = new ArrayList<>();
+            EgoistResult classQuestionResult = this.getClassQuestionList(OnionCollegeConstants.CLASS_ID_2);
+            if (!EgoistResult.isOk(classQuestionResult)) {
+                return classQuestionResult;
+            }
+            List<Subject> subjectList = (List<Subject>) classQuestionResult.getData();
+            subjectList.forEach(subject -> {
+                if (!subject.getUserId().equals(Integer.parseInt(this.getUserId()))) {
+                    subjectIdList.add(subject.getSubjectId());
+                }
+            });
+            return EgoistResult.ok(subjectIdList);
+        } catch (Exception e) {
+            return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "获取用于评论的问答失败：" + e.toString(), null);
         }
     }
 }
