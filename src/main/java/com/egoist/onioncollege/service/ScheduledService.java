@@ -65,8 +65,6 @@ public class ScheduledService {
                 return;
             }
             List<CourseItem> courseList = (List<CourseItem>) courseIdListResult.getData();
-            // 40分钟后调一下接口，看能不能当我在线40分钟
-            Thread.sleep(2400000);
             for (CourseItem course : courseList) {
                 // 全部评论，点赞评论
                 onionCollegeService.courseCommentAndAppraise("" + course.getResourceId());
@@ -75,6 +73,8 @@ public class ScheduledService {
                 // 保存课程学习记录
                 onionCollegeService.writeUserCourseHistory(course.getId(), course.getResourceId());
             }
+            // 40分钟
+            Thread.sleep(2400000);
         } catch (Exception e) {
             log.error(e.getMessage());
         }
