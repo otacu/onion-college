@@ -74,7 +74,7 @@ public class ScheduledService {
                 onionCollegeService.writeUserCourseHistory(course.getId(), course.getResourceId());
             }
             // 40分钟
-            Thread.sleep(2400000);
+//            Thread.sleep(2400000);
         } catch (Exception e) {
             log.error(e.getMessage());
         }
