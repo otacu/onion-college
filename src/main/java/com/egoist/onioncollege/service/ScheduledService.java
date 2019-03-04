@@ -26,9 +26,9 @@ public class ScheduledService {
     private OnionCollegeConfig onionCollegeConfig;
 
     /**
-     * 注意服务器慢8个小时
+     * 注意外国服务器慢8个小时
      */
-    @Scheduled(cron = "0 10 1 ? * *")
+    @Scheduled(cron = "0 10 9 ? * *")
     public void schedule1() {
         log.info("#######################定时任务开始1########################");
         try {
@@ -73,8 +73,8 @@ public class ScheduledService {
                 // 保存课程学习记录
                 onionCollegeService.writeUserCourseHistory(course.getId(), course.getResourceId());
             }
-            // 40分钟
-//            Thread.sleep(2400000);
+            // 5分钟
+            Thread.sleep(300000);
         } catch (Exception e) {
             log.error(e.getMessage());
         }
