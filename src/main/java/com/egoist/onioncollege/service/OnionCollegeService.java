@@ -243,7 +243,7 @@ public class OnionCollegeService {
                     OnionCollegeConstants.ORG_ID, new Date().getTime());
             Map<String, String> header = new HashMap<>();
             header.put("X-Access-Token", this.getAccessToken());
-            JSONObject returnObject = EgoistOkHttp3Util.get(url, header);
+            JSONObject returnObject = EgoistOkHttp3Util.getJson(url, header);
             if (returnObject == null) {
                 return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "返回报文为空", null);
             }
@@ -270,7 +270,7 @@ public class OnionCollegeService {
                     OnionCollegeConstants.CLASS_ID_2, new Date().getTime());
             Map<String, String> header = new HashMap<>();
             header.put("X-Access-Token", this.getAccessToken());
-            JSONObject returnObject = EgoistOkHttp3Util.get(url, header);
+            JSONObject returnObject = EgoistOkHttp3Util.getJson(url, header);
             if (returnObject == null) {
                 return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "返回报文为空", null);
             }
@@ -434,7 +434,7 @@ public class OnionCollegeService {
                     id, resourceId, resourceId);
             Map<String, String> header = new HashMap<>();
             header.put("X-Auth-Token", this.getAuthToken());
-            JSONObject returnObject = EgoistOkHttp3Util.get(url, header);
+            JSONObject returnObject = EgoistOkHttp3Util.getJson(url, header);
             if (returnObject == null) {
                 return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "返回报文为空", null);
             }
@@ -459,7 +459,7 @@ public class OnionCollegeService {
             String url = String.format(OnionCollegeConstants.HOT_SUBJECT_LIST_URL, this.getUserId(), new Date().getTime());
             Map<String, String> header = new HashMap<>();
             header.put("X-Access-Token", this.getAccessToken());
-            JSONObject returnObject = EgoistOkHttp3Util.get(url, header);
+            JSONObject returnObject = EgoistOkHttp3Util.getJson(url, header);
             if (returnObject == null) {
                 return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "返回报文为空", null);
             }
@@ -518,7 +518,7 @@ public class OnionCollegeService {
             String url = String.format(OnionCollegeConstants.CLASS_QUESTION_LIST_URL, classId);
             Map<String, String> header = new HashMap<>();
             header.put("X-Auth-Token", this.getAuthToken());
-            JSONObject returnObject = EgoistOkHttp3Util.get(url, header);
+            JSONObject returnObject = EgoistOkHttp3Util.getJson(url, header);
             if (returnObject == null) {
                 return new EgoistResult(EgoistExceptionStatusConstant.STATUS_400, "返回报文为空", null);
             }
